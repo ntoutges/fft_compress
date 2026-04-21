@@ -154,20 +154,36 @@ exports.Complex = Complex;
  * Construct a new complex number representing a point on the cartesian coordinate plane
  * @param x The real component of the complex value
  * @param y The imaginary component of the complex value
+ * @param c An optional complex object to reuse
  * @returns The complex number
  */
-function from_cart(x, y) {
+function from_cart(x, y, c) {
+    if (c) {
+        c.re(x);
+        c.im(y);
+        return c;
+    }
     return new Complex(x, y);
 }
 /**
  * Construct a new complex number representing a point on the polar coordinate plane
  * @param a The distnace from the center of the grid
  * @param y The angle relative to the +x axis, in radians
+ * @param c An optional complex object to reuse
  * @returns The complex number
  */
-function from_polar(a, p) {
+function from_polar(a, p, c) {
     // Calculate x/y from a,p
     const x = a * Math.cos(p);
     const y = a * Math.sin(p);
+    if (c) {
+        // c.re(x);
+        // c.im(y);
+        // @ts-ignore
+        c._re = x;
+        // @ts-ignore
+        c._im = y;
+        return c;
+    }
     return new Complex(x, y);
 }

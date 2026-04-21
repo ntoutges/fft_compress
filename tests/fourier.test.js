@@ -12,7 +12,11 @@ test("3 * cos(2*pi*t * 2/20)", () => {
         x.push(3 * Math.cos(2 * Math.PI * t * (2 / points)));
     }
 
+    console.time("DFT");
     const y = dft(x);
+    console.time("FFT");
+
+    expect(y.length).toBe(points);
 
     for (const i in y) {
         // Ensure all but 2Hz frequency (and alias) are ~0
