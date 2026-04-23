@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <title>FFT Compression</title>
+        <!-- <link
+            rel="icon"
+            type="image/x-icon"
+            href="/jeremy_bergen_counter.png"
+        /> -->
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <script src="./index.ts" type="module" defer></script>
+
+        <link rel="stylesheet" href="/index.css" />
+
+        <!-- <link
+            rel="stylesheet"
+            href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&icon_names=account_circle,add,add_notes,arrow_right,check_circle,close,delete,error,logout,north,pause,play_arrow,restart_alt,restore_from_trash,shield_person,south,update"
+        /> -->
+    </head>
+
+    <body>
+        <!-- Hold onto main panels -->
+        <div id="panels">
+            <!-- Source panel -->
+            <div id="panel-source">
+                <!-- Preview source -->
+                <img src="" id="panel-source-preview" />
+
+                <!-- Indicator to upload new source image -->
+                <div id="panel-source-upload">Upload Image</div>
+
+                <!-- Indicate that item should drop here -->
+                <div id="panel-source-drop">Drop Here!</div>
+
+                <!-- Overlay used to identify panel when not in use -->
+                <div class="panel-label">Source</div>
+            </div>
+
+            <!-- Map showing coords map to indices -->
+            <div id="panel-map">
+                <!-- Used to visualize map -->
+                <canvas id="panel-map-canvas"></canvas>
+
+                <!-- Info about cursor location -->
+                <div id="panel-map-coords">(0, 0)</div>
+                <div id="panel-map-index">#10</div>
+
+                <!-- Overlay used to identify panel when not in use -->
+                <div class="panel-label">Index Map</div>
+            </div>
+
+            <!-- Control compression process -->
+            <div id="panel-controls">
+                <!-- Overlay used to identify panel when not in use -->
+                <div class="panel-label">Controls</div>
+            </div>
+
+            <!-- Output data about compression -->
+            <div id="panel-data">
+                <!-- Overlay used to identify panel when not in use -->
+                <div class="panel-label">Data</div>
+            </div>
+
+            <!-- Output image panel (after compress + decompress) -->
+            <div id="panel-output">
+                <!-- Overlay used to identify panel when not in use -->
+                <div class="panel-label">Output</div>
+            </div>
+
+            <!-- Difference between input and output -->
+            <div id="panel-diff">
+                <!-- Overlay used to identify panel when not in use -->
+                <div class="panel-label">Diff</div>
+            </div>
+        </div>
+    </body>
+</html>

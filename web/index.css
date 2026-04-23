@@ -1,0 +1,186 @@
+:root {
+    --shadow: #8d6b94;
+    --dark: #b185a7;
+    --mid: #c3a29e;
+    --light: #e8dbc5;
+    --emphasis: #fff4e9;
+
+    --spacing: 16px;
+}
+
+body {
+    width: 100vw;
+    height: 100vh;
+    margin: 0px;
+
+    background: var(--light);
+
+    font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+}
+
+#panels {
+    width: 100%;
+    height: 100%;
+    box-sizing: border-box;
+
+    display: grid;
+    grid-template-areas:
+        "source controls output"
+        "map data diff";
+    grid-template-rows: 1fr 1fr;
+    grid-template-columns: 1fr 1fr 1fr;
+
+    padding: var(--spacing);
+    gap: var(--spacing);
+}
+
+/* Style panels */
+#panels > * {
+    border-radius: 20px;
+    box-sizing: border-box;
+    overflow: hidden;
+
+    box-shadow: var(--shadow) 2px 2px 4px;
+    background: var(--mid);
+
+    transition:
+        translate 200ms,
+        scale 200ms,
+        filter 200ms;
+    filter: brightness(95%);
+
+    &:hover {
+        translate: 0px -5px;
+        scale: 1.02;
+        filter: brightness(100%);
+    }
+}
+
+#panels .panel-label {
+    position: absolute;
+    right: 0px;
+    bottom: 0px;
+    z-index: 1000;
+
+    font-size: 2em;
+    text-align: right;
+    padding-right: 10px;
+    padding-left: 30px;
+    user-select: none;
+    pointer-events: none;
+
+    background: linear-gradient(90deg, transparent, #474747);
+    color: white;
+
+    transition: translate 200ms ease-out;
+}
+
+/* Slide out on hover */
+#panels > *:hover .panel-label {
+    translate: 100% 0px;
+    transition: translate 200ms ease-in;
+}
+
+#panel-source {
+    grid-area: source;
+    cursor: pointer;
+}
+
+#panel-source-drop {
+    position: absolute;
+    left: 0px;
+    bottom: 0px;
+
+    margin: 20px;
+    width: calc(100% - 2 * 20px);
+    height: calc(100% - 2 * 20px);
+
+    border: dashed #46afe3 10px;
+    box-sizing: border-box;
+    border-radius: 40px;
+
+    /* Center text */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+
+    color: #499eca;
+    font-size: 3em;
+    font-weight: bold;
+
+    user-select: none;
+    pointer-events: none;
+
+    /* __DEBUG__ */
+    display: none;
+}
+
+#panel-source:has(> #panel-source-preview[src=""]) #panel-source-upload {
+    position: absolute;
+    left: 0px;
+    top: 0px;
+    width: 100%;
+    height: 100%;
+    box-sizing: border-box;
+
+    /* Center text */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+
+    font-size: 3em;
+    user-select: none;
+    pointer-events: none;
+}
+
+#panel-map {
+    grid-area: map;
+}
+
+#panel-map-canvas {
+    width: 100%;
+    height: 100%;
+}
+
+#panel-map-coords,
+#panel-map-index {
+    position: absolute;
+    top: 0px;
+
+    color: white;
+
+    padding-left: 20px;
+    padding-right: 20px;
+
+    font-size: 1.1em;
+}
+
+#panel-map-coords {
+    left: 0px;
+    text-align: left;
+    background: linear-gradient(90deg, #474747, transparent);
+}
+
+#panel-map-index {
+    right: 0px;
+    text-align: right;
+    background: linear-gradient(90deg, transparent, #474747);
+}
+
+#panel-controls {
+    grid-area: controls;
+}
+
+#panel-data {
+    grid-area: data;
+}
+
+#panel-output {
+    grid-area: output;
+}
+
+#panel-diff {
+    grid-area: diff;
+}
