@@ -1,5 +1,10 @@
 import { _Complex, from_cart } from "./complex.js";
 
+export type curve_save_t = {
+    type: string;
+    params: any[];
+};
+
 export interface _Curve {
     /**
      * Get the next value in the curve.
@@ -14,9 +19,16 @@ export interface _Curve {
     index(): number;
 
     /**
+     * Get the number of points stored in this curve
+     */
+    length(): number;
+
+    /**
      * Reset the curve internal index counter to 0
      */
     reset(): void;
+
+    save(): curve_save_t;
 }
 
 abstract class CurveBase implements _Curve {
@@ -24,15 +36,22 @@ abstract class CurveBase implements _Curve {
     private _done: boolean = false;
     private readonly _length: number;
 
+    private readonly _save: curve_save_t;
+
     /**
-     * @param length    The maximum index to reach up to. Set to -1 to disable auto-cutoff
+     * @param length    The maximum index to reach up to
      */
-    constructor(length: number) {
+    constructor(length: number, type: string, params: any[]) {
         this._length = length;
+        this._save = { type, params };
     }
 
     index(): number {
         return this._done ? -1 : this._index;
+    }
+
+    length(): number {
+        return this._length;
     }
 
     reset(): void {
@@ -54,6 +73,10 @@ abstract class CurveBase implements _Curve {
         return value;
     }
 
+    save(): curve_save_t {
+        return structuredClone(this._save);
+    }
+
     /**
      * Compute the next point on the curve
      * @param index The current index. Garunteed to be one more than the previous (unless after a reset)
@@ -66,6 +89,16 @@ abstract class CurveBase implements _Curve {
      * Overload this function to trigger events on reset
      */
     protected _reset(): void {}
+}
+
+export class UnCurve extends CurveBase {
+    constructor() {
+        super(0, "un", []);
+    }
+
+    protected _next(index: number): _Complex | null {
+        return null;
+    }
 }
 
 /**
@@ -84,7 +117,7 @@ export class CurveH extends CurveBase {
      * @param y     The shared `y` position between all output points
      */
     constructor(x1: number, x2: number, y: number) {
-        super(Math.abs(x2 - x1) + 1);
+        super(Math.abs(x2 - x1) + 1, "h", [x1, x2, y]);
 
         this.x1 = Math.floor(x1);
         this.x2 = Math.ceil(x2);
@@ -115,7 +148,7 @@ export class CurveV extends CurveBase {
      * @param y2    The ending `y` position
      */
     constructor(x: number, y1: number, y2: number) {
-        super(Math.abs(y2 - y1) + 1);
+        super(Math.abs(y2 - y1) + 1, "v", [x, y1, y2]);
 
         this.y1 = Math.floor(y1);
         this.y2 = Math.ceil(y2);
@@ -155,7 +188,7 @@ export class CurveSnake extends CurveBase {
         const width = Math.abs(x2 - x1) + 1;
         const height = Math.abs(y2 - y1) + 1;
 
-        super(width * height);
+        super(width * height, "snake", [x1, y1, x2, y2]);
 
         this.x1 = x1;
         this.y1 = y1;
@@ -243,7 +276,7 @@ export class CurveSpiral extends CurveBase {
         const width = Math.abs(x2 - x1) + 1;
         const height = Math.abs(y2 - y1) + 1;
 
-        super(width * height);
+        super(width * height, "spiral", [x1, y1, x2, y2]);
 
         this.x1 = Math.min(x1, x2);
         this.y1 = Math.min(y1, y2);
@@ -355,3 +388,19 @@ export class CurveSpiral extends CurveBase {
 
 //     protected _next(index: number): _complex | null {}
 // }
+
+const classes = {
+    h: CurveH,
+    v: CurveV,
+    snake: CurveSnake,
+    spiral: CurveSpiral,
+};
+
+export function load(data: curve_save_t): _Curve {
+    const C = classes[data.type];
+
+    // Return the uncurve (terminates immediately)
+    if (!C) return new UnCurve();
+
+    return new C(...data.params);
+}

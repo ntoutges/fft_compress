@@ -22,9 +22,9 @@
         <!-- Hold onto main panels -->
         <div id="panels">
             <!-- Source panel -->
-            <div id="panel-source">
+            <label id="panel-source">
                 <!-- Preview source -->
-                <img src="" id="panel-source-preview" />
+                <img src="" id="panel-source-preview" class="preview" />
 
                 <!-- Indicator to upload new source image -->
                 <div id="panel-source-upload">Upload Image</div>
@@ -34,16 +34,29 @@
 
                 <!-- Overlay used to identify panel when not in use -->
                 <div class="panel-label">Source</div>
-            </div>
+
+                <!-- Hiden input for uploading -->
+                <input
+                    type="file"
+                    id="panel-source-input"
+                    accept="image/*"
+                    hidden
+                />
+            </label>
 
             <!-- Map showing coords map to indices -->
             <div id="panel-map">
                 <!-- Used to visualize map -->
-                <canvas id="panel-map-canvas"></canvas>
+                <img src="" id="panel-map-preview" class="preview" />
 
                 <!-- Info about cursor location -->
                 <div id="panel-map-coords">(0, 0)</div>
-                <div id="panel-map-index">#10</div>
+                <div id="panel-map-index">#0</div>
+
+                <div class="panel-overlay empty">No Dimensions Yet</div>
+                <div class="panel-overlay loading hidden">
+                    <div class="spinner"></div>
+                </div>
 
                 <!-- Overlay used to identify panel when not in use -->
                 <div class="panel-label">Index Map</div>
@@ -51,25 +64,94 @@
 
             <!-- Control compression process -->
             <div id="panel-controls">
-                <!-- Overlay used to identify panel when not in use -->
+                <div class="controls-group">
+                    <label>
+                        <span>Mapping</span>
+                        <select id="panel-controls-map-sel">
+                            <option value="horizontal">Horizontal</option>
+                            <option value="vertical">Vertical</option>
+                            <option value="snake">Snake</option>
+                            <option value="spiral">Spiral</option>
+                        </select>
+                    </label>
+
+                    <label>
+                        <span>Downsample</span>
+                        <span class="hint">(applies to both axes)</span>
+                        <select id="panel-controls-sample-sel">
+                            <option value="1">1x</option>
+                            <option value="2">2x</option>
+                            <option value="4">4x</option>
+                            <option value="8">8x</option>
+                        </select>
+                    </label>
+
+                    <label>
+                        <span>Quality</span>
+                        <input
+                            id="panel-controls-threshold-sel"
+                            type="range"
+                            min="0"
+                            max="1"
+                            step="0.01"
+                            value="0.8"
+                        />
+                        <span id="panel-controls-threshold-value">80%</span>
+                    </label>
+                </div>
+
+                <div id="controls-loading" class="loading-bar"></div>
+
                 <div class="panel-label">Controls</div>
             </div>
 
             <!-- Output data about compression -->
             <div id="panel-data">
-                <!-- Overlay used to identify panel when not in use -->
+                <div class="data-grid">
+                    <div>
+                        <strong>Original Size:</strong>
+                        <span id="data-original">-</span>
+                    </div>
+                    <div>
+                        <strong>New Size:</strong> <span id="data-new">-</span>
+                    </div>
+                    <div>
+                        <strong>Compression:</strong>
+                        <span id="data-ratio">-</span>
+                    </div>
+                </div>
+
+                <div id="panel-dft">
+                    <canvas id="panel-dft-canvas"></canvas>
+
+                    <div id="panel-dft-coords">(0 Hz)</div>
+                    <div id="panel-dft-amp">0.0</div>
+                </div>
+
                 <div class="panel-label">Data</div>
             </div>
 
             <!-- Output image panel (after compress + decompress) -->
             <div id="panel-output">
-                <!-- Overlay used to identify panel when not in use -->
+                <img src="" id="panel-output-preview" class="preview" />
+
+                <div class="panel-overlay empty">No Output Yet</div>
+                <div class="panel-overlay loading hidden">
+                    <div class="spinner"></div>
+                </div>
+
                 <div class="panel-label">Output</div>
             </div>
 
             <!-- Difference between input and output -->
             <div id="panel-diff">
-                <!-- Overlay used to identify panel when not in use -->
+                <img src="" id="panel-diff-preview" class="preview" />
+
+                <div class="panel-overlay empty">No Diff Yet</div>
+                <div class="panel-overlay loading hidden">
+                    <div class="spinner"></div>
+                </div>
+
                 <div class="panel-label">Diff</div>
             </div>
         </div>

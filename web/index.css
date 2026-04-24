@@ -1,7 +1,7 @@
 :root {
     --shadow: #8d6b94;
     --dark: #b185a7;
-    --mid: #c3a29e;
+    --mid: #c0c3d7;
     --light: #e8dbc5;
     --emphasis: #fff4e9;
 
@@ -112,8 +112,24 @@ body {
     user-select: none;
     pointer-events: none;
 
-    /* __DEBUG__ */
+    background: #4d4d4d8a;
+}
+
+/* Hide on non-drop */
+#panel-source-drop:not(.droppable) {
     display: none;
+}
+#panel-source:has(> .droppable) > #panel-source-upload {
+    display: none !important;
+}
+
+/* Allow all previews to fill the screen */
+.preview {
+    width: 100%;
+    height: 100%;
+
+    image-rendering: pixelated;
+    /* object-fit: contain; */
 }
 
 #panel-source:has(> #panel-source-preview[src=""]) #panel-source-upload {
@@ -155,6 +171,22 @@ body {
     padding-right: 20px;
 
     font-size: 1.1em;
+
+    translate: 0px 0px;
+    transition: translate 200ms ease-out;
+}
+
+/* Hide on non-hover */
+#panel-map:not(:hover) {
+    & > #panel-map-coords {
+        translate: -100% 0px;
+        transition: translate 200ms ease-in;
+    }
+
+    & > #panel-map-index {
+        translate: 100% 0px;
+        transition: translate 200ms ease-in;
+    }
 }
 
 #panel-map-coords {
@@ -170,11 +202,99 @@ body {
 }
 
 #panel-controls {
-    grid-area: controls;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 20px;
+}
+
+.controls-group {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+#panel-controls label {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    color: #333;
+    font-weight: 500;
+}
+
+#panel-controls select,
+#panel-controls input[type="range"] {
+    border: none;
+    border-radius: 10px;
+    padding: 6px;
+    background: var(--emphasis);
+    box-shadow: inset 2px 2px 6px rgba(0, 0, 0, 0.2);
+}
+
+#panel-controls .hint {
+    font-size: 0.8em;
+    opacity: 0.7;
+}
+
+#panel-controls-threshold-value {
+    font-weight: bold;
+    text-align: right;
 }
 
 #panel-data {
-    grid-area: data;
+    padding: 15px;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.data-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    font-size: 1.1em;
+}
+
+#panel-dft {
+    position: relative;
+    flex: 1;
+    border-radius: 15px;
+    overflow: hidden;
+    background: #222;
+}
+
+#panel-dft-canvas {
+    width: 100%;
+    height: 100%;
+}
+
+#panel-dft-coords,
+#panel-dft-amp {
+    position: absolute;
+    top: 0;
+    color: white;
+    padding: 10px;
+    font-size: 1em;
+    transition: translate 200ms;
+}
+
+#panel-dft-coords {
+    left: 0;
+    background: linear-gradient(90deg, #000, transparent);
+}
+
+#panel-dft-amp {
+    right: 0;
+    background: linear-gradient(90deg, transparent, #000);
+}
+
+/* hide when not hovered */
+#panel-dft:not(:hover) #panel-dft-coords {
+    translate: -100% 0;
+}
+
+#panel-dft:not(:hover) #panel-dft-amp {
+    translate: 100% 0;
 }
 
 #panel-output {
@@ -183,4 +303,70 @@ body {
 
 #panel-diff {
     grid-area: diff;
+}
+
+.loading-bar {
+    height: 6px;
+    border-radius: 10px;
+    background: linear-gradient(90deg, transparent, var(--dark), transparent);
+    background-size: 200% 100%;
+    animation: loading 1.2s infinite linear;
+    opacity: 0;
+}
+
+.loading-bar.active {
+    opacity: 1;
+}
+
+@keyframes loading {
+    from {
+        background-position: 200% 0;
+    }
+    to {
+        background-position: -200% 0;
+    }
+}
+
+.panel-overlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    font-size: 2em;
+    font-weight: bold;
+
+    background: rgba(0, 0, 0, 0.4);
+    color: white;
+
+    backdrop-filter: blur(4px);
+}
+
+.panel-overlay.empty {
+    user-select: none;
+}
+
+.panel-overlay.hidden {
+    display: none;
+}
+
+.spinner {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    border: 6px solid rgba(255, 255, 255, 0.3);
+    border-top: 6px solid white;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* Hide all source-less images */
+img[src=""] {
+    display: none;
 }
