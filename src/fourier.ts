@@ -24,25 +24,37 @@ export function dft_half(series: number[]): _Complex[] {
     // Compute each frequency's phase/amplitude
     // Each DOF in the series requires a DOF in the output
     for (let k = 0; k <= freq_len; k++) {
-        // Accumulate summation value
-        const accumulator = from_cart(0, 0);
-
-        // Iterate over all entries in the series
-        for (let n = 0; n < series.length; n++) {
-            // Setup working value with phase shift
-            const value = from_polar(1, -(2 * Math.PI * k * n) / series.length);
-
-            // Multiply sries value by the phase shift
-            value.mul(series[n]);
-
-            // Add working value to accumulator
-            accumulator.add(value);
-        }
-
-        freqs.push(accumulator);
+        freqs.push(dft_single(series, k));
     }
 
     return freqs;
+}
+
+/**
+ * Compute the Discrete Fourier Transform of some series of data
+ * This only computes a single frequency bucket, indicated by `k`
+ * @param series    The set of samples to run DFT on
+ * @parma k         The frequency to compute
+ * @returns         The phase and amplitude output of the the DFT.
+ * Note that this will be an array of length `Math.ceil(series.length / 2)` to avoid redundant alias processing
+ */
+export function dft_single(series: number[], k: number): _Complex {
+    // Accumulate summation value
+    const accumulator = from_cart(0, 0);
+
+    // Iterate over all entries in the series
+    for (let n = 0; n < series.length; n++) {
+        // Setup working value with phase shift
+        const value = from_polar(1, -(2 * Math.PI * k * n) / series.length);
+
+        // Multiply sries value by the phase shift
+        value.mul(series[n]);
+
+        // Add working value to accumulator
+        accumulator.add(value);
+    }
+
+    return accumulator;
 }
 
 /**

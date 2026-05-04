@@ -1,159 +1,198 @@
 <!doctype html>
 <html lang="en">
-    <head>
-        <title>FFT Compression</title>
-        <!-- <link
+
+<head>
+    <title>FFT Compression</title>
+    <!-- <link
             rel="icon"
             type="image/x-icon"
             href="/jeremy_bergen_counter.png"
         /> -->
-        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <script src="./index.ts" type="module" defer></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <script src="./index.ts" type="module" defer></script>
 
-        <link rel="stylesheet" href="/index.css" />
+    <link rel="stylesheet" href="/index.css" />
 
-        <!-- <link
+    <!-- <link
             rel="stylesheet"
             href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&icon_names=account_circle,add,add_notes,arrow_right,check_circle,close,delete,error,logout,north,pause,play_arrow,restart_alt,restore_from_trash,shield_person,south,update"
         /> -->
-    </head>
+</head>
 
-    <body>
-        <!-- Hold onto main panels -->
-        <div id="panels">
-            <!-- Source panel -->
-            <label id="panel-source">
-                <!-- Preview source -->
-                <img src="" id="panel-source-preview" class="preview" />
+<body>
+    <!-- Hold onto main panels -->
+    <div id="panels">
+        <!-- Source panel -->
+        <label id="panel-source">
+            <!-- Preview source -->
+            <img src="" id="panel-source-preview" class="preview" />
 
-                <!-- Indicator to upload new source image -->
-                <div id="panel-source-upload">Upload Image</div>
+            <!-- Indicator to upload new source image -->
+            <div id="panel-source-upload">Upload Image</div>
 
-                <!-- Indicate that item should drop here -->
-                <div id="panel-source-drop">Drop Here!</div>
+            <!-- Indicate that item should drop here -->
+            <div id="panel-source-drop">Drop Here!</div>
 
-                <!-- Overlay used to identify panel when not in use -->
-                <div class="panel-label">Source</div>
+            <!-- Overlay used to identify panel when not in use -->
+            <div class="panel-label">Source</div>
 
-                <!-- Hiden input for uploading -->
-                <input
-                    type="file"
-                    id="panel-source-input"
-                    accept="image/*"
-                    hidden
-                />
-            </label>
+            <!-- Hiden input for uploading -->
+            <input type="file" id="panel-source-input" accept="image/*" hidden />
+        </label>
 
-            <!-- Map showing coords map to indices -->
-            <div id="panel-map">
-                <!-- Used to visualize map -->
-                <img src="" id="panel-map-preview" class="preview" />
+        <!-- Map showing coords map to indices -->
+        <div id="panel-map">
+            <!-- Used to visualize map -->
+            <img src="" id="panel-map-preview" class="preview" />
 
-                <!-- Info about cursor location -->
-                <div id="panel-map-coords">(0, 0)</div>
-                <div id="panel-map-index">#0</div>
+            <!-- Info about cursor location -->
+            <div id="panel-map-coords">(0, 0)</div>
+            <div id="panel-map-index">#0</div>
 
-                <div class="panel-overlay empty">No Dimensions Yet</div>
-                <div class="panel-overlay loading hidden">
+            <div class="panel-overlay empty">No Dimensions Yet</div>
+            <div class="panel-overlay loading hidden">
+                <div class="spinner-container">
                     <div class="spinner"></div>
-                </div>
 
-                <!-- Overlay used to identify panel when not in use -->
-                <div class="panel-label">Index Map</div>
+                    <!-- Progress ring -->
+                    <svg class="progress-ring" viewBox="0 0 100 100">
+                        <circle class="progress-bg" cx="50" cy="50" r="42" />
+                        <circle class="progress-bar" cx="50" cy="50" r="42" />
+                    </svg>
+
+                    <!-- Percentage -->
+                    <div class="progress-text">0%</div>
+                </div>
             </div>
 
-            <!-- Control compression process -->
-            <div id="panel-controls">
-                <div class="controls-group">
-                    <label>
-                        <span>Mapping</span>
-                        <select id="panel-controls-map-sel">
-                            <option value="horizontal">Horizontal</option>
-                            <option value="vertical">Vertical</option>
-                            <option value="snake">Snake</option>
-                            <option value="spiral">Spiral</option>
-                        </select>
-                    </label>
-
-                    <label>
-                        <span>Downsample</span>
-                        <span class="hint">(applies to both axes)</span>
-                        <select id="panel-controls-sample-sel">
-                            <option value="1">1x</option>
-                            <option value="2">2x</option>
-                            <option value="4">4x</option>
-                            <option value="8">8x</option>
-                        </select>
-                    </label>
-
-                    <label>
-                        <span>Quality</span>
-                        <input
-                            id="panel-controls-threshold-sel"
-                            type="range"
-                            min="0"
-                            max="1"
-                            step="0.01"
-                            value="0.8"
-                        />
-                        <span id="panel-controls-threshold-value">80%</span>
-                    </label>
-                </div>
-
-                <div id="controls-loading" class="loading-bar"></div>
-
-                <div class="panel-label">Controls</div>
-            </div>
-
-            <!-- Output data about compression -->
-            <div id="panel-data">
-                <div class="data-grid">
-                    <div>
-                        <strong>Original Size:</strong>
-                        <span id="data-original">-</span>
-                    </div>
-                    <div>
-                        <strong>New Size:</strong> <span id="data-new">-</span>
-                    </div>
-                    <div>
-                        <strong>Compression:</strong>
-                        <span id="data-ratio">-</span>
-                    </div>
-                </div>
-
-                <div id="panel-dft">
-                    <canvas id="panel-dft-canvas"></canvas>
-
-                    <div id="panel-dft-coords">(0 Hz)</div>
-                    <div id="panel-dft-amp">0.0</div>
-                </div>
-
-                <div class="panel-label">Data</div>
-            </div>
-
-            <!-- Output image panel (after compress + decompress) -->
-            <div id="panel-output">
-                <img src="" id="panel-output-preview" class="preview" />
-
-                <div class="panel-overlay empty">No Output Yet</div>
-                <div class="panel-overlay loading hidden">
-                    <div class="spinner"></div>
-                </div>
-
-                <div class="panel-label">Output</div>
-            </div>
-
-            <!-- Difference between input and output -->
-            <div id="panel-diff">
-                <img src="" id="panel-diff-preview" class="preview" />
-
-                <div class="panel-overlay empty">No Diff Yet</div>
-                <div class="panel-overlay loading hidden">
-                    <div class="spinner"></div>
-                </div>
-
-                <div class="panel-label">Diff</div>
-            </div>
+            <!-- Overlay used to identify panel when not in use -->
+            <div class="panel-label">Index Map</div>
         </div>
-    </body>
+
+        <!-- Control compression process -->
+        <div id="panel-controls">
+            <div class="controls-group">
+                <label>
+                    <span>Mapping</span>
+                    <select id="panel-controls-map-sel">
+                        <option value="horizontal">Horizontal</option>
+                        <option value="vertical">Vertical</option>
+                        <option value="snake">Snake</option>
+                        <option value="spiral">Spiral</option>
+                    </select>
+                </label>
+
+                <label>
+                    <span>Downsample</span>
+                    <span class="hint">(applies to both axes)</span>
+                    <select id="panel-controls-sample-sel">
+                        <option value="1">1x</option>
+                        <option value="2">2x</option>
+                        <option value="4">4x</option>
+                        <option value="8">8x</option>
+                    </select>
+                </label>
+
+                <label>
+                    <span>Quality</span>
+                    <input id="panel-controls-threshold-sel" type="range" min="0" max="1" step="0.01" value="0.8" />
+                    <span id="panel-controls-threshold-value">80%</span>
+                </label>
+            </div>
+
+            <div id="controls-loading" class="loading-bar"></div>
+
+            <div class="panel-label">Controls</div>
+        </div>
+
+        <!-- Output data about compression -->
+        <div id="panel-data">
+            <div class="panel-overlay empty">No Output Yet</div>
+            <div class="panel-overlay loading hidden">
+                <div class="spinner-container">
+                    <div class="spinner"></div>
+
+                    <!-- Progress ring -->
+                    <svg class="progress-ring" viewBox="0 0 100 100">
+                        <circle class="progress-bg" cx="50" cy="50" r="42" />
+                        <circle class="progress-bar" cx="50" cy="50" r="42" />
+                    </svg>
+
+                    <!-- Percentage -->
+                    <div class="progress-text">0%</div>
+                </div>
+            </div>
+
+            <div class="data-grid">
+                <div>
+                    <strong>Original Size:</strong>
+                    <span id="data-original">-</span>
+                </div>
+                <div>
+                    <strong>New Size:</strong> <span id="data-new">-</span>
+                </div>
+                <div>
+                    <strong>Compression:</strong>
+                    <span id="data-ratio">-</span>
+                </div>
+            </div>
+
+            <div id="panel-dft">
+                <canvas id="panel-dft-canvas"></canvas>
+
+                <div id="panel-dft-coords">(0 Hz)</div>
+                <div id="panel-dft-amp">0.0</div>
+            </div>
+
+            <div class="panel-label">Data</div>
+        </div>
+
+        <!-- Output image panel (after compress + decompress) -->
+        <div id="panel-output">
+            <img src="" id="panel-output-preview" class="preview" />
+
+            <div class="panel-overlay empty">No Output Yet</div>
+            <div class="panel-overlay loading hidden">
+                <div class="spinner-container">
+                    <div class="spinner"></div>
+
+                    <!-- Progress ring -->
+                    <svg class="progress-ring" viewBox="0 0 100 100">
+                        <circle class="progress-bg" cx="50" cy="50" r="42" />
+                        <circle class="progress-bar" cx="50" cy="50" r="42" />
+                    </svg>
+
+                    <!-- Percentage -->
+                    <div class="progress-text">0%</div>
+                </div>
+            </div>
+
+            <div class="panel-label">Output</div>
+        </div>
+
+        <!-- Difference between input and output -->
+        <div id="panel-diff">
+            <img src="" id="panel-diff-preview" class="preview" />
+
+            <div class="panel-overlay empty">No Diff Yet</div>
+            <div class="panel-overlay loading hidden">
+                <div class="spinner-container">
+                    <div class="spinner"></div>
+
+                    <!-- Progress ring -->
+                    <svg class="progress-ring" viewBox="0 0 100 100">
+                        <circle class="progress-bg" cx="50" cy="50" r="42" />
+                        <circle class="progress-bar" cx="50" cy="50" r="42" />
+                    </svg>
+
+                    <!-- Percentage -->
+                    <div class="progress-text">0%</div>
+                </div>
+            </div>
+
+            <div class="panel-label">Diff</div>
+        </div>
+    </div>
+</body>
+
 </html>

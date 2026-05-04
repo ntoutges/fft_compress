@@ -35,7 +35,7 @@ function init(data: { curves: curve_save_t[]; width: number; height: number }) {
     active = 0;
 
     canvas = new OffscreenCanvas(data.width, data.height);
-    ctx = canvas.getContext("2d");
+    ctx = canvas.getContext("2d")!;
 
     working = null;
     ptLength = 0;
@@ -58,9 +58,9 @@ function run() {
 
     // Run in steps to allow event handler to still run
     interval = setInterval(() => {
-        const done = step(performance.now() + 10);
+        const done = step(performance.now() + 500);
 
-        if (done) {
+        if (done && interval !== null) {
             clearInterval(interval);
             if (working !== localWorking) return; // Some other process started; Discard results
 
@@ -74,6 +74,11 @@ function run() {
                 [bitmap],
             );
             working = null;
+        } else {
+            self.postMessage({
+                type: "progress",
+                progress: ptIndex / ptLength,
+            });
         }
     }, 0);
 }
@@ -87,7 +92,7 @@ function step(stop: number): boolean {
     // Generate points and write to canvas
     for (let i = active; i < curves.length; i++) {
         const curve = curves[i];
-        let point: _Complex;
+        let point: _Complex | null;
 
         while ((point = curve.next())) {
             const x = point.re();
