@@ -4,17 +4,26 @@
 
 import { _Complex } from "../complex.js";
 import { _Curve, curve_save_t, load } from "../curve.js";
-import { dft_half } from "../fourier.js";
+import { dft_single } from "../fourier.js";
 
 enum state_t {
     DECURVE, // Convert image bitmap into set of 3 R/G/B series
     DFT, // Run DFT on extracted R/G/B series
 }
 
+enum dft_state_t {
+    R,
+    G,
+    B,
+}
+
 let curves: _Curve[] = [];
 let active: number = 0;
 let working: symbol | null = null;
 let state: state_t = state_t.DECURVE;
+let dft_state: dft_state_t = dft_state_t.R;
+
+let dft_k: number;
 
 const series: {
     r: number[];
@@ -24,9 +33,9 @@ const series: {
 
 // Output frequencies from DFT
 const freqs: {
-    r: number[];
-    g: number[];
-    b: number[];
+    r: _Complex[];
+    g: _Complex[];
+    b: _Complex[];
 } = { r: [], g: [], b: [] };
 
 let ptIndex: number = 0;
@@ -53,6 +62,7 @@ function init(data: { curves: curve_save_t[]; image: ImageBitmap }) {
     curves = data.curves.map((x) => load(x));
     active = 0;
     state = state_t.DECURVE;
+    dft_state = dft_state_t.R;
 
     const canvas = new OffscreenCanvas(data.image.width, data.image.height);
     const ctx = canvas.getContext("2d")!;
@@ -63,6 +73,7 @@ function init(data: { curves: curve_save_t[]; image: ImageBitmap }) {
     working = null;
     ptLength = 0;
     ptIndex = 0;
+    dft_k = 0;
 
     series.r.splice(0);
     series.g.splice(0);
@@ -89,29 +100,39 @@ function run() {
 
     // Run in steps to allow event handler to still run
     interval = setInterval(() => {
-        const done = step(performance.now() + 10);
+        const done = step(performance.now() + 500);
 
         if (done && interval !== null) {
             clearInterval(interval);
             if (working !== localWorking) return; // Some other process started; Discard results
 
             // Push data into r/g/b buffers to minimize data transfer
-            const r = new Float32Array(freqs.r);
-            const g = new Float32Array(freqs.g);
-            const b = new Float32Array(freqs.b);
+            const rx = new Float32Array(freqs.r.map((x) => x.re())).buffer;
+            const gx = new Float32Array(freqs.g.map((x) => x.re())).buffer;
+            const bx = new Float32Array(freqs.b.map((x) => x.re())).buffer;
+            const ry = new Float32Array(freqs.r.map((x) => x.im())).buffer;
+            const gy = new Float32Array(freqs.g.map((x) => x.im())).buffer;
+            const by = new Float32Array(freqs.b.map((x) => x.im())).buffer;
 
             postMessage(
                 {
                     type: "fin",
-                    r,
-                    g,
-                    b,
+                    rx,
+                    ry,
+                    gx,
+                    gy,
+                    bx,
+                    by,
                 },
-
                 // @ts-ignore
-                [r, g, b],
+                [rx, gx, ry, gy, bx, by],
             );
             working = null;
+        } else {
+            self.postMessage({
+                type: "progress",
+                progress: (dft_k / series.r.length) * 2,
+            });
         }
     }, 0);
 }
@@ -176,7 +197,29 @@ function _step_decurve(stop: number): boolean {
 }
 
 function _step_dft(stop: number): boolean {
-    console.log(series);
+    while (dft_k < series.r.length / 2) {
+        switch (dft_state) {
+            case dft_state_t.R:
+                freqs.r.push(dft_single(series.r, dft_k));
+                dft_state = dft_state_t.G;
+                break;
+
+            case dft_state_t.G:
+                freqs.g.push(dft_single(series.g, dft_k));
+                dft_state = dft_state_t.B;
+                break;
+            case dft_state_t.B:
+                freqs.b.push(dft_single(series.b, dft_k));
+                dft_state = dft_state_t.R;
+
+                // Done within frequency; Move to next frequency
+                dft_k++;
+                break;
+        }
+
+        // Halt!
+        if (performance.now() > stop) return false;
+    }
 
     return true;
 }
