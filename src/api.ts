@@ -30,6 +30,11 @@ export type ui_t = {
         g: number;
         b: number;
     } | null;
+
+    artifact: {
+        compressed: ReturnType<ui_comp_t>;
+        decompressed: ReturnType<ui_decomp_t>;
+    } | null;
 };
 
 export type full_ui_t = ui_t & {
@@ -38,8 +43,19 @@ export type full_ui_t = ui_t & {
     height: number;
 };
 
+export type decompress_t = {
+    width: number;
+    height: number;
+    dft: {
+        r: _Complex[];
+        g: _Complex[];
+        b: _Complex[];
+    };
+};
+
 type ui_cb_t = (data: full_ui_t, changes: keyof ui_t | "*") => void;
 type ui_comp_t = (data: ui_t) => ArrayBuffer;
+type ui_decomp_t = (data: ArrayBuffer) => decompress_t;
 
 const inputCBs = new Set<ui_cb_t>();
 const ui_state: ui_t = {
@@ -51,9 +67,12 @@ const ui_state: ui_t = {
     curves: [],
     dft: null,
     dft_cutoff: null,
+
+    artifact: null,
 };
 
 let compressor: ui_comp_t | null = null;
+let decompressor: ui_decomp_t | null = null;
 
 /**
  * Subscribe to user interactions
@@ -341,7 +360,7 @@ function main() {
             change === "downsample" ||
             change === "dft_cutoff"
         )
-            updateCompressionDetails();
+            performCompression();
     });
 }
 
@@ -384,7 +403,9 @@ export function uploadInput(src: URL) {
             inputImageToken = null;
 
             ui_state.input = bitmap;
-            ctrlChange("input", true);
+            setTimeout(() => {
+                ctrlChange("input", true);
+            });
         } catch (err) {
             console.error("Failed to convert image to bitmap");
         }
@@ -780,20 +801,60 @@ function updateDFTPlot() {
     update("data", "ready");
 }
 
-function updateCompressionDetails() {
+let compressTok: symbol | null = null;
+function performCompression() {
     const oSizeEl = document.getElementById("data-original")!;
     const nSizeEl = document.getElementById("data-new")!;
     const compressionEl = document.getElementById("data-ratio")!;
 
-    // Assume 24-bit raw bitmap
+    // Assume 4-byte dimensions + 24-bit raw bitmap
     // Account for downsampling
     const oldSize =
         (ui_state.input
-            ? (ui_state.input.width * ui_state.input.height) /
-              ui_state.downsample ** 2
+            ? 4 +
+              (ui_state.input.width * ui_state.input.height) /
+                  ui_state.downsample ** 2
             : 0) * 3;
 
-    const newSize = compressor?.(ui_state)?.byteLength ?? 0;
+    // Prepare artifact
+    let change = ui_state.artifact !== null;
+    ui_state.artifact = null;
+
+    if (compressor && decompressor) {
+        try {
+            // Attempt to compress
+            const compressed = compressor(ui_state) ?? null;
+
+            // Only attempt to decomperss if didn't fail to compress
+            if (compressed !== null && compressed.byteLength !== 0) {
+                const decompressed = decompressor(compressed) ?? null;
+                if (decompressed.width !== 0 && decompressed.height !== 0) {
+                    ui_state.artifact = {
+                        compressed,
+                        decompressed,
+                    };
+                    change = true;
+                }
+            }
+        } catch (err) {
+            console.error("Failed to decomperss", err);
+        }
+    }
+
+    if (change) {
+        const localTok = Symbol();
+        compressTok = localTok;
+        setTimeout(() => {
+            if (localTok !== compressTok) return;
+            compressTok = null;
+
+            ctrlChange("artifact", true);
+        });
+    }
+
+    // Perform compression/decompression step
+
+    const newSize = ui_state.artifact?.compressed.byteLength ?? 0;
 
     // Render new/old size
     oSizeEl.textContent = oldSize ? formatSize(oldSize) : "-";
@@ -859,8 +920,12 @@ function handleDFTMove(event: PointerEvent) {
     amp.textContent = `${r}\n${g}\n${b}`;
 }
 
-export function registerCompressor(cb: ui_comp_t) {
-    compressor = cb;
+export function registerCompression(
+    compress: ui_comp_t,
+    decompress: ui_decomp_t,
+) {
+    compressor = compress;
+    decompressor = decompress;
 }
 
 main();
