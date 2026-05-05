@@ -2,7 +2,7 @@
  * Run DFT on image data
  */
 
-import { _Complex } from "../complex.js";
+import { _Complex, from_cart } from "../complex.js";
 import { _Curve, curve_save_t, load } from "../curve.js";
 import { dft_single } from "../fourier.js";
 
@@ -22,6 +22,7 @@ let active: number = 0;
 let working: symbol | null = null;
 let state: state_t = state_t.DECURVE;
 let dft_state: dft_state_t = dft_state_t.R;
+let downsample: number;
 
 let dft_k: number;
 
@@ -58,11 +59,16 @@ function handleEvent(ev: MessageEvent) {
     }
 }
 
-function init(data: { curves: curve_save_t[]; image: ImageBitmap }) {
+function init(data: {
+    curves: curve_save_t[];
+    image: ImageBitmap;
+    downsample: number;
+}) {
     curves = data.curves.map((x) => load(x));
     active = 0;
     state = state_t.DECURVE;
     dft_state = dft_state_t.R;
+    downsample = data.downsample;
 
     const canvas = new OffscreenCanvas(data.image.width, data.image.height);
     const ctx = canvas.getContext("2d")!;
@@ -107,12 +113,24 @@ function run() {
             if (working !== localWorking) return; // Some other process started; Discard results
 
             // Push data into r/g/b buffers to minimize data transfer
-            const rx = new Float32Array(freqs.r.map((x) => x.re())).buffer;
-            const gx = new Float32Array(freqs.g.map((x) => x.re())).buffer;
-            const bx = new Float32Array(freqs.b.map((x) => x.re())).buffer;
-            const ry = new Float32Array(freqs.r.map((x) => x.im())).buffer;
-            const gy = new Float32Array(freqs.g.map((x) => x.im())).buffer;
-            const by = new Float32Array(freqs.b.map((x) => x.im())).buffer;
+            const rx = new Float32Array(
+                freqs.r.map((x) => x.re() / freqs.r.length),
+            ).buffer;
+            const gx = new Float32Array(
+                freqs.g.map((x) => x.re() / freqs.r.length),
+            ).buffer;
+            const bx = new Float32Array(
+                freqs.b.map((x) => x.re() / freqs.r.length),
+            ).buffer;
+            const ry = new Float32Array(
+                freqs.r.map((x) => x.im() / freqs.r.length),
+            ).buffer;
+            const gy = new Float32Array(
+                freqs.g.map((x) => x.im() / freqs.r.length),
+            ).buffer;
+            const by = new Float32Array(
+                freqs.b.map((x) => x.im() / freqs.r.length),
+            ).buffer;
 
             postMessage(
                 {
@@ -159,14 +177,14 @@ function step(stop: number): boolean {
 }
 
 function _step_decurve(stop: number): boolean {
-    // Generate points and write to canvas
+    // Generate points
     for (let i = active; i < curves.length; i++) {
         const curve = curves[i];
         let point: _Complex | null;
 
         while ((point = curve.next())) {
-            const x = point.re();
-            const y = point.im();
+            const x = point.re() * downsample;
+            const y = point.im() * downsample;
 
             // Invalid curve point; Skip!
             if (
@@ -178,9 +196,9 @@ function _step_decurve(stop: number): boolean {
                 continue;
             }
 
-            const i_base = x + y * imageData.width;
+            const i_base = 4 * (x + y * imageData.width);
             const i_r = i_base;
-            const i_g = i_base + 1;
+            const i_g = i_base + 1; // __DEV__
             const i_b = i_base + 2;
 
             series.r.push(imageData.data[i_r]);
@@ -197,7 +215,7 @@ function _step_decurve(stop: number): boolean {
 }
 
 function _step_dft(stop: number): boolean {
-    while (dft_k < series.r.length / 2) {
+    while (dft_k <= series.r.length / 2) {
         switch (dft_state) {
             case dft_state_t.R:
                 freqs.r.push(dft_single(series.r, dft_k));

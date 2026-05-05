@@ -111,9 +111,9 @@ export function dft_invert_single(hdft: _Complex[], even: boolean, n: number) {
 
     for (let k = 0; k < length; k++) {
         // Setup working value with phase shift
-        const value = from_polar(1, -(2 * Math.PI * k * n) / length);
+        const value = from_polar(1, (2 * Math.PI * k * n) / length);
 
-        value.mul(k < hdft.length ? hdft[k] : hdft[length - k]);
+        value.mul(k < hdft.length ? hdft[k] : hdft[length - k].clone().conj());
 
         acc.add(value);
     }

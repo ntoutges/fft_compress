@@ -35,6 +35,8 @@ export type ui_t = {
         compressed: ReturnType<ui_comp_t>;
         decompressed: ReturnType<ui_decomp_t>;
     } | null;
+
+    output: ImageBitmap | null;
 };
 
 export type full_ui_t = ui_t & {
@@ -54,7 +56,7 @@ export type decompress_t = {
 };
 
 type ui_cb_t = (data: full_ui_t, changes: keyof ui_t | "*") => void;
-type ui_comp_t = (data: ui_t) => ArrayBuffer;
+type ui_comp_t = (data: full_ui_t) => ArrayBuffer;
 type ui_decomp_t = (data: ArrayBuffer) => decompress_t;
 
 const inputCBs = new Set<ui_cb_t>();
@@ -69,6 +71,7 @@ const ui_state: ui_t = {
     dft_cutoff: null,
 
     artifact: null,
+    output: null,
 };
 
 let compressor: ui_comp_t | null = null;
@@ -133,7 +136,7 @@ export function updateMap(
     // Create new worker
     if (!mapWorker) {
         mapWorker = new Worker(
-            new URL("./workers/curve_render.ts", import.meta.url),
+            new URL("../src/workers/curve_render.ts", import.meta.url),
             {
                 type: "module",
             },
@@ -263,7 +266,6 @@ function update(
 
     // Prevent memory leaks
     if (img.dataset.old_url) {
-        console.log("Revoekd", panel);
         URL.revokeObjectURL(img.dataset.old_url);
     }
 
@@ -361,6 +363,8 @@ function main() {
             change === "dft_cutoff"
         )
             performCompression();
+
+        if (change === "*" || change === "artifact") computeOutput();
     });
 }
 
@@ -572,7 +576,7 @@ function updateDFT() {
 
     // Create new worker
     dftWorker = new Worker(
-        new URL("./workers/dft_compress.ts", import.meta.url),
+        new URL("../src/workers/dft_compress.ts", import.meta.url),
         {
             type: "module",
         },
@@ -583,6 +587,7 @@ function updateDFT() {
         type: "init",
         curves: ui_state.curves,
         image: ui_state.input,
+        downsample: ui_state.downsample,
     });
     dftWorker.postMessage({
         type: "run",
@@ -598,7 +603,7 @@ function onDFTMessage(ev: MessageEvent) {
             // Decode DFT info from message
             const rx = new Float32Array(ev.data.rx);
             const ry = new Float32Array(ev.data.ry);
-            const gx = new Float32Array(ev.data.bx);
+            const gx = new Float32Array(ev.data.gx);
             const gy = new Float32Array(ev.data.gy);
             const bx = new Float32Array(ev.data.bx);
             const by = new Float32Array(ev.data.by);
@@ -646,10 +651,10 @@ function updateDFTCutoffs() {
     // Use quality slider to determine max freq + min amplitude
     // This will determine cutoff frequencies
 
-    const min_amp_thresh = 0.2;
+    const min_amp_thresh = 0.05;
     const max_amp_thresh = 1;
 
-    const min_freq_thresh = 0.5;
+    const min_freq_thresh = 0.2;
     const max_freq_thresh = 1;
 
     // Normalized amplitude threshold relative to maximum amplitude value
@@ -823,7 +828,16 @@ function performCompression() {
     if (compressor && decompressor) {
         try {
             // Attempt to compress
-            const compressed = compressor(ui_state) ?? null;
+            const compressed =
+                compressor({
+                    ...ui_state,
+                    width: Math.ceil(
+                        (ui_state.input?.width ?? 0) / ui_state.downsample,
+                    ),
+                    height: Math.ceil(
+                        (ui_state.input?.height ?? 0) / ui_state.downsample,
+                    ),
+                }) ?? null;
 
             // Only attempt to decomperss if didn't fail to compress
             if (compressed !== null && compressed.byteLength !== 0) {
@@ -835,6 +849,21 @@ function performCompression() {
                     };
                     change = true;
                 }
+                // // __DEV__
+                // ui_state.artifact = {
+                //     compressed,
+                //     decompressed: {
+                //         width: ui_state.input!.width,
+                //         height: ui_state.input!.height,
+                //         dft: {
+                //             r: ui_state.dft!.r,
+                //             g: ui_state.dft!.g,
+                //             b: ui_state.dft!.b,
+                //         },
+                //     },
+                // };
+
+                change = true;
             }
         } catch (err) {
             console.error("Failed to decomperss", err);
@@ -926,6 +955,113 @@ export function registerCompression(
 ) {
     compressor = compress;
     decompressor = decompress;
+}
+
+let outputWorker: Worker | null = null;
+function computeOutput() {
+    updateOutput("loading");
+
+    // Clear out dft data
+    ui_state.output = null;
+    ctrlChange("output", true);
+
+    // Stop map worker
+    if (outputWorker) {
+        outputWorker.terminate();
+        outputWorker = null;
+    }
+
+    // No work to do!
+    if (!ui_state.artifact) return;
+
+    // Create new worker
+    outputWorker = new Worker(
+        new URL("../src/workers/dft_uncompress.ts", import.meta.url),
+        {
+            type: "module",
+        },
+    );
+
+    // Generate (r/g/b)(x/y) buffers from artifact
+    const rx = new Float32Array(
+        ui_state.artifact.decompressed.dft.r.map((x) => x.re()),
+    ).buffer;
+    const gx = new Float32Array(
+        ui_state.artifact.decompressed.dft.g.map((x) => x.re()),
+    ).buffer;
+    const bx = new Float32Array(
+        ui_state.artifact.decompressed.dft.b.map((x) => x.re()),
+    ).buffer;
+    const ry = new Float32Array(
+        ui_state.artifact.decompressed.dft.r.map((x) => x.im()),
+    ).buffer;
+    const gy = new Float32Array(
+        ui_state.artifact.decompressed.dft.g.map((x) => x.im()),
+    ).buffer;
+    const by = new Float32Array(
+        ui_state.artifact.decompressed.dft.b.map((x) => x.im()),
+    ).buffer;
+
+    // Start worker funning DFT
+    outputWorker.postMessage(
+        {
+            type: "init",
+            curves: ui_state.curves,
+            width: ui_state.artifact.decompressed.width,
+            height: ui_state.artifact.decompressed.height,
+            freqs: {
+                rx,
+                gx,
+                bx,
+                ry,
+                gy,
+                by,
+            },
+        },
+        [rx, gx, bx, ry, gy, by],
+    );
+    outputWorker.postMessage({
+        type: "run",
+    });
+
+    // Listen for worker to finish
+    outputWorker.onmessage = onOutputMessage;
+}
+
+function onOutputMessage(ev: MessageEvent) {
+    switch (ev.data.type) {
+        case "fin":
+            const bmp = ev.data.bmp as ImageBitmap;
+
+            const canvas = new OffscreenCanvas(bmp.width, bmp.height);
+            const ctx = canvas.getContext("2d")!;
+            ctx.drawImage(bmp, 0, 0);
+
+            canvas.convertToBlob().then((blob) => {
+                update("output", blob);
+            });
+
+            outputWorker?.terminate();
+            outputWorker = null;
+            break;
+
+        case "progress": {
+            update("output", `loading:${ev.data.progress}`);
+
+            // Render updated value
+            // const bmp = ev.data.bmp as ImageBitmap;
+
+            // const canvas = new OffscreenCanvas(bmp.width, bmp.height);
+            // const ctx = canvas.getContext("2d")!;
+            // ctx.drawImage(bmp, 0, 0);
+
+            // canvas.convertToBlob().then((blob) => {
+            //     update("output", blob);
+            //     update("output", `loading:${ev.data.progress}`);
+            // });
+            break;
+        }
+    }
 }
 
 main();
