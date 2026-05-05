@@ -89,7 +89,7 @@ export function realias(hdft: _Complex[], even: boolean): _Complex[] {
 export function dft_invert(hdft: _Complex[], even: boolean): number[] {
     const series: number[] = [];
 
-    const length = 2 * hdft.length - (even ? 0 : 1);
+    const length = even ? 2 * hdft.length - 2 : 2 * hdft.length - 1; // Account for overlapping point
     for (let n = 0; n < length; n++) {
         series.push(dft_invert_single(hdft, even, n));
     }
@@ -107,20 +107,16 @@ export function dft_invert(hdft: _Complex[], even: boolean): number[] {
  */
 export function dft_invert_single(hdft: _Complex[], even: boolean, n: number) {
     let acc = from_cart(0, 0);
-    const length = 2 * hdft.length - (even ? 0 : 1);
+    const length = even ? 2 * hdft.length - 2 : 2 * hdft.length - 1; // Account for overlapping point
 
-    for (let k = 0; k < hdft.length; k++) {
+    for (let k = 0; k < length; k++) {
         // Setup working value with phase shift
         const value = from_polar(1, -(2 * Math.PI * k * n) / length);
-        value.mul(hdft[k]);
 
-        // Account for the other half of data and overlapping points
-        if (even || k !== hdft.length - 1) {
-            acc.mul(2);
-        }
+        value.mul(k < hdft.length ? hdft[k] : hdft[length - k]);
 
         acc.add(value);
     }
 
-    return acc.abs() / length;
+    return acc.re() / length;
 }

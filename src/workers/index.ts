@@ -4,7 +4,7 @@ import {
     updateDiff,
     updateMap,
     updateOutput,
-} from "../api.js";
+} from "../../web/api.js";
 import { _Curve, CurveH, CurveSnake, CurveSpiral, CurveV } from "../curve.js";
 
 onInput((val, up) => {

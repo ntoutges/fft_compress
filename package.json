@@ -1,6 +1,6 @@
 {
     "scripts": {
-        "test": "tsc && jest"
+        "test": "tsc --project tests/tsconfig.json && jest"
     },
     "devDependencies": {
         "@types/jest": "^30.0.0",

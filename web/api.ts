@@ -3,8 +3,8 @@
  * @description API to easily interact with data panels
  */
 
-import { _Complex, from_cart } from "./complex";
-import { _Curve, curve_save_t } from "./curve";
+import { _Complex, from_cart } from "../src/complex";
+import { _Curve, curve_save_t } from "../src/curve";
 
 // Types of mappings
 type map_t = "horizontal" | "vertical" | "snake" | "spiral";

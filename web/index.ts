@@ -6,7 +6,7 @@ import {
     ui_t,
     updateMap,
     uploadInput,
-} from "../src/api.js";
+} from "./api.js";
 import { from_cart } from "../src/complex.js";
 import {
     _Curve,
@@ -48,10 +48,6 @@ onInput((val, up) => {
                 acc += Math.pow(oX - aX, 2) + Math.pow(oY - aY, 2);
                 ct += 2;
             }
-
-            console.log(
-                `${component}-component average error: ${Math.sqrt(acc) / ct}`,
-            );
         }
     }
 });

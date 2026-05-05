@@ -1,4 +1,23 @@
-const { CurveH, CurveV, CurveSnake, CurveSpiral } = require("../dist/curve.js");
+const {
+    CurveH,
+    CurveV,
+    CurveSnake,
+    CurveSpiral,
+    load,
+    UnCurve,
+} = require("./dist/curve.js");
+
+test("UnCurve", () => {
+    const curve = new UnCurve();
+
+    expect(curve.length()).toBe(0);
+    expect(curve.next() === null).toBe(true);
+
+    // Basic test of saving
+    const save = curve.save();
+    const ld = load(save);
+    expect(ld.length()).toBe(0);
+});
 
 test("CurveH", () => {
     const x1 = 0;
@@ -12,6 +31,7 @@ test("CurveH", () => {
     }
 
     const curve = new CurveH(x1, x2, y);
+    expect(curve.length()).toBe(x2 - x1 + 1);
 
     const MAX = 1000;
     let i, pt;
@@ -30,6 +50,15 @@ test("CurveH", () => {
 
     // Ensure all points used up
     expect(points.size).toBe(0);
+
+    // Ensure resetting works
+    curve.reset();
+    expect(curve.next() === null).toBe(false);
+
+    // Basic test of saving
+    const save = curve.save();
+    const ld = load(save);
+    expect(ld.length()).toBe(x2 - x1 + 1);
 });
 
 test("CurveV", () => {
@@ -44,6 +73,7 @@ test("CurveV", () => {
     }
 
     const curve = new CurveV(x, y1, y2);
+    expect(curve.length()).toBe(y2 - y1 + 1);
 
     const MAX = 1000;
     let i, pt;
@@ -62,6 +92,15 @@ test("CurveV", () => {
 
     // Ensure all points used up
     expect(points.size).toBe(0);
+
+    // Ensure resetting works
+    curve.reset();
+    expect(curve.next() === null).toBe(false);
+
+    // Basic test of saving
+    const save = curve.save();
+    const ld = load(save);
+    expect(ld.length()).toBe(y2 - y1 + 1);
 });
 
 test("CurveSnake", () => {
@@ -79,6 +118,7 @@ test("CurveSnake", () => {
     }
 
     const curve = new CurveSnake(x1, y1, x2, y2);
+    expect(curve.length()).toBe((x2 - x1 + 1) * (y2 - y1 + 1));
 
     const MAX = 1000;
     let i,
@@ -106,6 +146,15 @@ test("CurveSnake", () => {
 
     // Ensure all points used up
     expect(points.size).toBe(0);
+
+    // Ensure resetting works
+    curve.reset();
+    expect(curve.next() === null).toBe(false);
+
+    // Basic test of saving
+    const save = curve.save();
+    const ld = load(save);
+    expect(ld.length()).toBe((x2 - x1 + 1) * (y2 - y1 + 1));
 });
 
 test("CurveSpiral", () => {
@@ -123,6 +172,7 @@ test("CurveSpiral", () => {
     }
 
     const curve = new CurveSpiral(x1, y1, x2, y2);
+    expect(curve.length()).toBe((x2 - x1 + 1) * (y2 - y1 + 1));
 
     const MAX = 1000;
     let i,
@@ -150,4 +200,13 @@ test("CurveSpiral", () => {
 
     // Ensure all points used up
     expect(points.size).toBe(0);
+
+    // Ensure resetting works
+    curve.reset();
+    expect(curve.next() === null).toBe(false);
+
+    // Basic test of saving
+    const save = curve.save();
+    const ld = load(save);
+    expect(ld.length()).toBe((x2 - x1 + 1) * (y2 - y1 + 1));
 });

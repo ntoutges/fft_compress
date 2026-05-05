@@ -1,0 +1,11 @@
+{
+    "compilerOptions": {
+        "rootDir": "../src",
+        "outDir": "dist",
+        "module": "nodenext",
+        "target": "esnext",
+        "moduleResolution": "nodenext",
+        "types": ["vite/client"]
+    },
+    "include": ["../src/*"]
+}

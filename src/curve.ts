@@ -254,23 +254,23 @@ export class CurveSpiral extends CurveBase {
     private readonly y2: number;
 
     // Movable walls surrounding spiral
-    private x1_wall: number;
-    private x2_wall: number;
-    private y1_wall: number;
-    private y2_wall: number;
+    private x1_wall!: number;
+    private x2_wall!: number;
+    private y1_wall!: number;
+    private y2_wall!: number;
 
     // Initial x/y positions
     private readonly xi: number;
     private readonly yi: number;
 
     // Cursors to keep track of spiral's current position
-    private x: number;
-    private y: number;
+    private x!: number;
+    private y!: number;
 
     // Keep track of directions (+/-1)
     // Note that only _ONE_ should be non-0 at a time
-    private x_dir: number;
-    private y_dir: number;
+    private x_dir!: number;
+    private y_dir!: number;
 
     constructor(x1: number, y1: number, x2: number, y2: number) {
         const width = Math.abs(x2 - x1) + 1;
@@ -397,10 +397,11 @@ const classes = {
 };
 
 export function load(data: curve_save_t): _Curve {
-    const C = classes[data.type];
+    const C = classes[data.type as keyof typeof classes];
 
     // Return the uncurve (terminates immediately)
     if (!C) return new UnCurve();
 
+    // @ts-ignore
     return new C(...data.params);
 }

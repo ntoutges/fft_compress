@@ -1,4 +1,4 @@
-const { Complex, from_cart, from_polar } = require("../dist/complex.js");
+const { Complex, from_cart, from_polar } = require("./dist/complex.js");
 
 test("Getters", () => {
     const complex = new Complex(1, 2);
@@ -33,6 +33,19 @@ test("Binary Operations", () => {
 
     a.add(10);
     expect(a.equals(new Complex(8, -2)));
+
+    a.sub(5);
+    expect(a.equals(new Complex(3, -2)));
+
+    a.re(1);
+    a.im(0);
+    const c = new Complex(0, 2); // Rotate by 90 deg
+
+    a.mul(c);
+    expect(a.equals(new Complex(0, 2)));
+
+    a.div(c);
+    expect(a.equals(new Complex(1, 0)));
 });
 
 test("Unary Operations", () => {
@@ -78,12 +91,23 @@ test("Utilities", () => {
     expect(JSON.stringify(complex.toJSON())).toEqual(
         JSON.stringify({ re: 1, im: -2 }),
     );
+
+    // Ensure 'equals 'works'
+    expect(new Complex(1, 2).equals(new Complex(1, 2))).toBe(true);
+    expect(new Complex(1, 2).equals(new Complex(1, 0))).toBe(false);
 });
 
 test("Builders", () => {
     const a = from_cart(10, 20);
     const b = from_polar(5, 0.5 * Math.PI);
 
-    expect(a.equals(new Complex(10, 20)));
-    expect(b.equals(new Complex(0, 5)));
+    expect(a.equals(new Complex(10, 20))).toBe(true);
+    expect(b.sub(new Complex(0, 5)).abs()).toBeCloseTo(0);
+
+    // Ensure we can refill old values
+    from_cart(1, 2, a);
+    from_polar(2, 1 * Math.PI, b);
+
+    expect(a.equals(new Complex(1, 2))).toBe(true);
+    expect(b.sub(new Complex(-2, 0)).abs()).toBeCloseTo(0);
 });
