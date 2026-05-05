@@ -34,9 +34,8 @@ export function dft_half(series: number[]): _Complex[] {
  * Compute the Discrete Fourier Transform of some series of data
  * This only computes a single frequency bucket, indicated by `k`
  * @param series    The set of samples to run DFT on
- * @parma k         The frequency to compute
+ * @param k         The frequency to compute
  * @returns         The phase and amplitude output of the the DFT.
- * Note that this will be an array of length `Math.ceil(series.length / 2)` to avoid redundant alias processing
  */
 export function dft_single(series: number[], k: number): _Complex {
     // Accumulate summation value
@@ -80,4 +79,48 @@ export function realias(hdft: _Complex[], even: boolean): _Complex[] {
     }
 
     return dft;
+}
+
+/**
+ * Compute the original time-domain signal from a half-dft signal
+ * @param hdft  The computed half-length DFT
+ * @param even  The parity of the length of the original data series
+ */
+export function dft_invert(hdft: _Complex[], even: boolean): number[] {
+    const series: number[] = [];
+
+    const length = 2 * hdft.length - (even ? 0 : 1);
+    for (let n = 0; n < length; n++) {
+        series.push(dft_invert_single(hdft, even, n));
+    }
+
+    return series;
+}
+
+/**
+ * Compute the Inverse Discrete Fourier Transform of some series of complex numbers
+ * This only computes a single time bucket, indicated by `k`
+ * @param series    The set of samples to run Inverse DFT on
+ * @param even  The parity of the length of the original data series
+ * @param n         The time step to compute
+ * @returns         The original time-domain signal
+ */
+export function dft_invert_single(hdft: _Complex[], even: boolean, n: number) {
+    let acc = from_cart(0, 0);
+    const length = 2 * hdft.length - (even ? 0 : 1);
+
+    for (let k = 0; k < hdft.length; k++) {
+        // Setup working value with phase shift
+        const value = from_polar(1, -(2 * Math.PI * k * n) / length);
+        value.mul(hdft[k]);
+
+        // Account for the other half of data and overlapping points
+        if (even || k !== hdft.length - 1) {
+            acc.mul(2);
+        }
+
+        acc.add(value);
+    }
+
+    return acc.abs() / length;
 }
