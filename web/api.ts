@@ -365,6 +365,7 @@ function main() {
             performCompression();
 
         if (change === "*" || change === "artifact") computeOutput();
+        if (change === "*" || change === "output") computeDiff();
     });
 }
 
@@ -1043,25 +1044,52 @@ function onOutputMessage(ev: MessageEvent) {
 
             outputWorker?.terminate();
             outputWorker = null;
+
+            ui_state.output = canvas.transferToImageBitmap();
+            ctrlChange("output", true);
             break;
 
         case "progress": {
             update("output", `loading:${ev.data.progress}`);
-
-            // Render updated value
-            // const bmp = ev.data.bmp as ImageBitmap;
-
-            // const canvas = new OffscreenCanvas(bmp.width, bmp.height);
-            // const ctx = canvas.getContext("2d")!;
-            // ctx.drawImage(bmp, 0, 0);
-
-            // canvas.convertToBlob().then((blob) => {
-            //     update("output", blob);
-            //     update("output", `loading:${ev.data.progress}`);
-            // });
             break;
         }
     }
+}
+
+function computeDiff() {
+    updateDiff("loading");
+    if (ui_state.output === null || ui_state.input === null) return;
+
+    // Generate diff using canvas manipulation
+    const canvas = new OffscreenCanvas(
+        ui_state.input.width,
+        ui_state.input.height,
+    );
+    const ctx = canvas.getContext("2d")!;
+
+    // Draw base image
+    ctx.drawImage(
+        ui_state.input,
+        0,
+        0,
+        ui_state.input.width,
+        ui_state.input.height,
+    );
+
+    // Subtract output from base image
+    ctx.globalCompositeOperation = "difference";
+    ctx.drawImage(
+        ui_state.output,
+        0,
+        0,
+        ui_state.input.width,
+        ui_state.input.height,
+    );
+
+    // Convert to (then render) blob
+    canvas.convertToBlob().then((blob) => {
+        update("diff", blob);
+    });
 }
 
 main();
