@@ -9,6 +9,8 @@ import { _Curve, curve_save_t } from "../src/curve";
 // Types of mappings
 type map_t = "horizontal" | "vertical" | "snake" | "spiral";
 
+const RENDER_THREADS = 4;
+
 export type ui_t = {
     input: ImageBitmap | null;
 
@@ -958,7 +960,8 @@ export function registerCompression(
     decompressor = decompress;
 }
 
-let outputWorker: Worker | null = null;
+const outputWorkers = new Map<number, { progress: number; w: Worker }>();
+let outputCanvas: OffscreenCanvas;
 function computeOutput() {
     updateOutput("loading");
 
@@ -966,21 +969,18 @@ function computeOutput() {
     ui_state.output = null;
     ctrlChange("output", true);
 
-    // Stop map worker
-    if (outputWorker) {
-        outputWorker.terminate();
-        outputWorker = null;
+    // Stop all map workers
+    for (const { w } of outputWorkers.values()) {
+        w.terminate();
     }
+    outputWorkers.clear();
 
     // No work to do!
     if (!ui_state.artifact) return;
 
-    // Create new worker
-    outputWorker = new Worker(
-        new URL("../src/workers/dft_uncompress.ts", import.meta.url),
-        {
-            type: "module",
-        },
+    outputCanvas = new OffscreenCanvas(
+        ui_state.artifact.decompressed.width,
+        ui_state.artifact.decompressed.height,
     );
 
     // Generate (r/g/b)(x/y) buffers from artifact
@@ -1003,13 +1003,28 @@ function computeOutput() {
         ui_state.artifact.decompressed.dft.b.map((x) => x.im()),
     ).buffer;
 
-    // Start worker funning DFT
-    outputWorker.postMessage(
-        {
+    // Create new workers
+    const step =
+        (ui_state.artifact.decompressed.width *
+            ui_state.artifact.decompressed.height) /
+        RENDER_THREADS;
+    for (let i = 0; i < RENDER_THREADS; i++) {
+        const w = new Worker(
+            new URL("../src/workers/dft_uncompress.ts", import.meta.url),
+            {
+                type: "module",
+            },
+        );
+
+        // Start worker running portion of DFT
+        w.postMessage({
             type: "init",
             curves: ui_state.curves,
             width: ui_state.artifact.decompressed.width,
             height: ui_state.artifact.decompressed.height,
+            id: i,
+            start: i * step,
+            end: (i + 1) * step,
             freqs: {
                 rx,
                 gx,
@@ -1018,39 +1033,66 @@ function computeOutput() {
                 gy,
                 by,
             },
-        },
-        [rx, gx, bx, ry, gy, by],
-    );
-    outputWorker.postMessage({
-        type: "run",
-    });
+        });
+        w.postMessage({
+            type: "run",
+        });
 
-    // Listen for worker to finish
-    outputWorker.onmessage = onOutputMessage;
+        // Listen for worker to finish
+        w.onmessage = onOutputMessage;
+
+        outputWorkers.set(i, { w, progress: 0 });
+    }
 }
 
+let outputTok: symbol | null = null;
 function onOutputMessage(ev: MessageEvent) {
     switch (ev.data.type) {
-        case "fin":
+        case "fin": {
             const bmp = ev.data.bmp as ImageBitmap;
+            const localTok = Symbol();
+            outputTok = localTok;
 
-            const canvas = new OffscreenCanvas(bmp.width, bmp.height);
-            const ctx = canvas.getContext("2d")!;
+            if (!outputCanvas) return; // How did you get here!?
+
+            // Add rendering to accumulator canvas
+            const ctx = outputCanvas.getContext("2d")!;
+            ctx.globalCompositeOperation = "lighter";
             ctx.drawImage(bmp, 0, 0);
 
-            canvas.convertToBlob().then((blob) => {
+            // Stpo this worker
+            outputWorkers.get(ev.data.id)?.w.terminate();
+            outputWorkers.delete(ev.data.id);
+
+            // All renderers finished!
+            // if (outputWorkers.size === 0) {
+            outputCanvas.convertToBlob().then((blob) => {
+                if (localTok !== outputTok) return;
                 update("output", blob);
             });
 
-            outputWorker?.terminate();
-            outputWorker = null;
+            createImageBitmap(outputCanvas).then((bmp) => {
+                if (localTok !== outputTok) return;
 
-            ui_state.output = canvas.transferToImageBitmap();
-            ctrlChange("output", true);
+                ui_state.output = bmp;
+                ctrlChange("output", true);
+            });
             break;
+        }
 
         case "progress": {
-            update("output", `loading:${ev.data.progress}`);
+            const w = outputWorkers.get(ev.data.id);
+            if (!w) return;
+
+            w.progress = ev.data.progress;
+
+            // Get total progress
+            let total = 0;
+            for (const w of outputWorkers.values()) {
+                total += w.progress;
+            }
+
+            update("output", `loading:${total / RENDER_THREADS}`);
             break;
         }
     }

@@ -10,6 +10,10 @@ let curves: _Curve[] = [];
 let active: number = 0;
 let working: symbol | null = null;
 
+let id: number;
+let start: number;
+let end: number;
+
 let ptIndex: number = 0;
 let ptLength: number = 0;
 
@@ -43,6 +47,9 @@ function init(data: {
     freqs: Record<"rx" | "ry" | "gx" | "gy" | "bx" | "by", ArrayBuffer>;
     width: number;
     height: number;
+    start: number;
+    end: number;
+    id: number;
 }) {
     curves = data.curves.map((x) => load(x));
     active = 0;
@@ -51,6 +58,10 @@ function init(data: {
     ptIndex = 0;
 
     working = null;
+
+    start = data.start;
+    end = data.end;
+    id = data.id;
 
     freqs.r.splice(0);
     freqs.g.splice(0);
@@ -102,6 +113,7 @@ function run() {
                 {
                     type: "fin",
                     bmp: bitmap,
+                    id: id,
                 },
                 // @ts-ignore
                 [bitmap],
@@ -112,6 +124,7 @@ function run() {
                 {
                     type: "progress",
                     progress: ptIndex / ptLength,
+                    id: id,
                 },
                 // @ts-ignore
                 // [bitmap],
@@ -138,6 +151,9 @@ function step(stop: number): boolean {
             const x = point.re();
             const y = point.im();
             const n = ptIndex++;
+
+            if (ptIndex < start) continue; // Ignore too-low indices
+            if (ptIndex >= end) break; // Finished!
 
             // Invalid curve point; Skip!
             if (x < 0 || x >= canvas.width || y < 0 || y >= canvas.height) {
