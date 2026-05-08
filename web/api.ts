@@ -1005,9 +1005,9 @@ function computeOutput() {
 
     // Create new workers
     const step =
-        (ui_state.artifact.decompressed.width *
+        Math.ceil((ui_state.artifact.decompressed.width *
             ui_state.artifact.decompressed.height) /
-        RENDER_THREADS;
+        RENDER_THREADS);
     for (let i = 0; i < RENDER_THREADS; i++) {
         const w = new Worker(
             new URL("../src/workers/dft_uncompress.ts", import.meta.url),
