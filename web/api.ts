@@ -1087,7 +1087,7 @@ function onOutputMessage(ev: MessageEvent) {
             w.progress = ev.data.progress;
 
             // Get total progress
-            let total = 0;
+            let total = RENDER_THREADS - outputWorkers.size;
             for (const w of outputWorkers.values()) {
                 total += w.progress;
             }
