@@ -694,7 +694,7 @@ function updateDFTCutoffs() {
         const axis = ui_state.dft[component as keyof typeof ui_state.dft];
         for (let i = axis.length - 1; i >= 0; i--) {
             // Found first non-threshold-removed value
-            if (transform(axis[i].abs()) >= amp_thresh) {
+            if (transform(axis[i].abs()) > amp_thresh) {
                 ui_state.dft_cutoff[
                     component as keyof typeof ui_state.dft_cutoff
                 ] = i + 1;
@@ -711,7 +711,10 @@ function updateDFTCutoffs() {
         const thresh_freq = Math.round(max_freq * freq_threshn);
 
         // max_amp[component] = Math.min(max_amp[component], thresh_freq);
-        ui_state.dft_cutoff[component] = thresh_freq;
+        ui_state.dft_cutoff[component] = Math.min(
+            ui_state.dft_cutoff[component],
+            thresh_freq,
+        );
     }
 
     ctrlChange("dft_cutoff", true);
@@ -852,19 +855,6 @@ function performCompression() {
                     };
                     change = true;
                 }
-                // // __DEV__
-                // ui_state.artifact = {
-                //     compressed,
-                //     decompressed: {
-                //         width: ui_state.input!.width,
-                //         height: ui_state.input!.height,
-                //         dft: {
-                //             r: ui_state.dft!.r,
-                //             g: ui_state.dft!.g,
-                //             b: ui_state.dft!.b,
-                //         },
-                //     },
-                // };
 
                 change = true;
             }

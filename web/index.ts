@@ -29,9 +29,9 @@ onInput((val, up) => {
         const artifact = val.artifact.decompressed.dft;
 
         for (const component of ["r", "g", "b"] as const) {
-            if (val.dft_cutoff[component] >= artifact[component].length) {
+            if (val.dft_cutoff[component] > artifact[component].length) {
                 console.warn(
-                    `Failed to compare ${component}-component; ${val.dft_cutoff[component]} >= ${artifact[component].length}`,
+                    `Failed to compare ${component}-component; ${val.dft_cutoff[component]} > ${artifact[component].length}`,
                 );
                 continue;
             }
