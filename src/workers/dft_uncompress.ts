@@ -153,7 +153,7 @@ function step(stop: number): boolean {
             const n = ptIndex++;
 
             if (ptIndex < start) continue; // Ignore too-low indices
-            if (ptIndex > end) break; // Finished!
+            if (ptIndex > end) return true; // Finished!
 
             // Invalid curve point; Skip!
             if (x < 0 || x >= canvas.width || y < 0 || y >= canvas.height) {

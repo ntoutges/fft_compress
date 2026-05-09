@@ -1004,10 +1004,11 @@ function computeOutput() {
     ).buffer;
 
     // Create new workers
-    const step =
-        Math.ceil((ui_state.artifact.decompressed.width *
+    const step = Math.ceil(
+        (ui_state.artifact.decompressed.width *
             ui_state.artifact.decompressed.height) /
-        RENDER_THREADS);
+            RENDER_THREADS,
+    );
     for (let i = 0; i < RENDER_THREADS; i++) {
         const w = new Worker(
             new URL("../src/workers/dft_uncompress.ts", import.meta.url),
@@ -1046,12 +1047,11 @@ function computeOutput() {
 }
 
 let outputTok: symbol | null = null;
+const outputDisposal: Worker[] = [];
 function onOutputMessage(ev: MessageEvent) {
     switch (ev.data.type) {
         case "fin": {
             const bmp = ev.data.bmp as ImageBitmap;
-            const localTok = Symbol();
-            outputTok = localTok;
 
             if (!outputCanvas) return; // How did you get here!?
 
@@ -1060,23 +1060,35 @@ function onOutputMessage(ev: MessageEvent) {
             ctx.globalCompositeOperation = "lighter";
             ctx.drawImage(bmp, 0, 0);
 
+            const worker = outputWorkers.get(ev.data.id)?.w;
+
             // Stpo this worker
-            outputWorkers.get(ev.data.id)?.w.terminate();
             outputWorkers.delete(ev.data.id);
+            if (worker) outputDisposal.push(worker);
 
             // All renderers finished!
-            // if (outputWorkers.size === 0) {
-            outputCanvas.convertToBlob().then((blob) => {
-                if (localTok !== outputTok) return;
-                update("output", blob);
-            });
+            if (outputWorkers.size === 0) {
+                const localTok = Symbol();
+                outputTok = localTok;
 
-            createImageBitmap(outputCanvas).then((bmp) => {
-                if (localTok !== outputTok) return;
+                outputCanvas.convertToBlob().then((blob) => {
+                    if (localTok !== outputTok) return;
+                    update("output", blob);
 
-                ui_state.output = bmp;
-                ctrlChange("output", true);
-            });
+                    // Stop all workers
+                    for (const worker of outputDisposal) {
+                        worker.terminate();
+                    }
+                });
+
+                createImageBitmap(outputCanvas).then((bmp) => {
+                    if (localTok !== outputTok) return;
+
+                    ui_state.output = bmp;
+                    ctrlChange("output", true);
+                });
+            }
+
             break;
         }
 
