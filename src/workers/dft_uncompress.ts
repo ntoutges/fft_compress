@@ -123,7 +123,7 @@ function run() {
             self.postMessage(
                 {
                     type: "progress",
-                    progress: ptIndex / ptLength,
+                    progress: (ptIndex - start) / (end - start + 1),
                     id: id,
                 },
                 // @ts-ignore

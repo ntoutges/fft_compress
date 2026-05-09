@@ -234,4 +234,4 @@ function decompress(buf: ArrayBuffer): decompress_t {
 registerCompression(compress, decompress);
 
 // Mime image being uploaded
-uploadInput(new URL("../test_imgs/16x16_target.png", import.meta.url));
+uploadInput(new URL("./test_imgs/16x16_target.png", import.meta.url));

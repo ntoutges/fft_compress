@@ -1,5 +1,6 @@
 {
     "scripts": {
+        "build": "vite build",
         "test": "tsc --project tests/tsconfig.json && jest"
     },
     "devDependencies": {
